@@ -1,0 +1,8 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Christmas crossword</title><link rel="stylesheet" href="./style.css?v=f92d0e92a171c765"></head>
+<body><main id="game" aria-label="Christmas crossword">
+<section class="question-panel"><nav aria-label="Question navigation"><button id="previous" aria-label="Previous question">‹</button><span id="counter"></span><button id="next" aria-label="Next question">›</button></nav><h1 id="question"></h1></section>
+<div id="grid" role="group" aria-label="Crossword grid"></div>
+<section class="bottom"><div class="secret-label">SECRET WORD</div><div id="secret" aria-label="Secret word"></div><div class="actions"><button id="check">Check word</button><button id="restart">Restart</button></div><p id="status" role="status" aria-live="polite">Choose a word and type your answer.</p></section>
+<dialog id="confirmation"><form method="dialog"><p>Clear your answers and start again?</p><div><button value="cancel">Keep playing</button><button value="restart">Restart</button></div></form></dialog>
+</main><script type="module" src="./game.js?v=da45932fef13a497"></script></body></html>

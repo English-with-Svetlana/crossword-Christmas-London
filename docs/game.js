@@ -1,0 +1,30 @@
+export const words = [
+{answer:'ARTIFICIAL',question:'What kind of a tree is now used more often?',x:6,y:0,down:true},
+{answer:'TWELVE',question:'How many dishes were supposed to be on the table?',x:1,y:11},
+{answer:'EXOTIC',question:'What kind of dishes were difficult to get?',x:1,y:6},
+{answer:'CAVIAR',question:'What was red and black on the table?',x:1,y:1},
+{answer:'DOMESTIC',question:'What releases were watched on TV before New Year?',x:0,y:3},
+{answer:'INTERNET',question:'What do people use now to watch different films?',x:6,y:5},
+{answer:'COSTUMES',question:"What did mums sew for children's holidays themselves?",x:3,y:5,down:true}
+];
+export const mappings = [[0,4,1],[2,0,4],[3,3,3],[4,2,5],[5,5,6],[6,1,1],[7,2,2],[8,3,5],[10,1,2],[11,5,4]];
+export function buildGrid(){const cells=new Map();words.forEach((w,wi)=>{w.keys=[...w.answer].map((letter,i)=>{const key=`${w.x+(w.down?0:i)},${w.y+(w.down?i:0)}`;if(cells.has(key)&&cells.get(key).letter!==letter)throw Error('Conflicting intersection '+key);if(!cells.has(key))cells.set(key,{letter,members:[],value:''});cells.get(key).members.push(wi);return key;});});return cells;}
+export const cells=buildGrid();
+if(mappings.some(([p,w,i])=>words[w].answer[i]!=='OFFICEWORKER'[p]))throw Error('Invalid secret mapping');
+if(typeof document!=='undefined'){
+let active=0,focused=null;const verified=new Set();const $=id=>document.getElementById(id);const status=message=>$('status').textContent=message;
+const sources=new Set(mappings.map(([,w,i])=>words[w].keys[i]));
+cells.forEach((cell,key)=>{const [x,y]=key.split(',').map(Number);const el=document.createElement('div');el.className='cell'+(sources.has(key)?' source':'');el.style.gridColumn=x+1;el.style.gridRow=y+1;const start=words.findIndex(w=>w.keys[0]===key);if(start>=0){const number=document.createElement('span');number.className='number';number.textContent=start+1;el.append(number);}const input=document.createElement('input');input.type='text';input.inputMode='text';input.autocomplete='off';input.spellcheck=false;input.setAttribute('autocapitalize','characters');input.setAttribute('aria-label',`Row ${y+1}, column ${x+1}`);input.addEventListener('pointerdown',()=>{if(cell.members.length>1&&focused===key){active=cell.members[(cell.members.indexOf(active)+1)%cell.members.length];}else if(!cell.members.includes(active))active=cell.members[0];focused=key;render();});input.addEventListener('focus',()=>{if(!cell.members.includes(active))active=cell.members[0];focused=key;render();});input.addEventListener('input',()=>{const letters=input.value.toUpperCase().replace(/[^A-Z]/g,'');if(letters){put(letters.slice(-1));move(1);}else{cell.value='';changed();}});input.addEventListener('paste',e=>{e.preventDefault();const text=e.clipboardData.getData('text').toUpperCase().replace(/[^A-Z]/g,'');const keys=words[active].keys;let pos=keys.indexOf(key);for(const letter of text){if(pos>=keys.length)break;cells.get(keys[pos++]).value=letter;}changed();focus(keys[Math.min(pos,keys.length-1)]);});input.addEventListener('keydown',e=>{if(e.key==='Backspace'){e.preventDefault();if(cell.value){cell.value='';changed();}else{move(-1);cells.get(focused).value='';changed();}}else if(e.key==='Delete'){e.preventDefault();cell.value='';changed();}else if(e.key==='Enter'){e.preventDefault();check();}else if(e.key.startsWith('Arrow')){e.preventDefault();const dx=e.key==='ArrowRight'?1:e.key==='ArrowLeft'?-1:0,dy=e.key==='ArrowDown'?1:e.key==='ArrowUp'?-1:0;const target=`${x+dx},${y+dy}`;if(cells.has(target)){const desired=cell.members.find(w=>!!words[w].down===!!dy);if(desired!==undefined)active=desired;focus(target);}}});cell.el=el;cell.input=input;el.append(input);$('grid').append(el);});
+for(let i=0;i<12;i++){const el=document.createElement('span');el.className='secret-cell';el.setAttribute('aria-label',`Secret letter ${i+1}`);$('secret').append(el);}
+function correct(w){return words[w].keys.every((key,i)=>cells.get(key).value===words[w].answer[i]);}
+function changed(){for(const w of verified)if(!correct(w))verified.delete(w);status('');render();}
+function put(letter){cells.get(focused).value=letter;changed();}
+function focus(key){focused=key;cells.get(key).input.focus();render();}
+function move(delta){const keys=words[active].keys;focus(keys[Math.max(0,Math.min(keys.length-1,keys.indexOf(focused)+delta))]);}
+function select(w){active=(w+7)%7;status('');focus(words[active].keys.find(k=>!cells.get(k).value)||words[active].keys[0]);}
+function check(){const keys=words[active].keys;if(keys.some(k=>!cells.get(k).value))status('Finish this word, then check again.');else if(!correct(active))status('Not quite. Try again.');else{verified.add(active);status(verified.size===7?'All seven correct — well done!':'Correct!');}render();}
+function render(){ $('question').textContent=`${active+1}. ${words[active].question}`;$('counter').textContent=`${active+1} / 7`;cells.forEach((c,k)=>{c.input.value=c.value;c.el.classList.toggle('selected',c.members.includes(active));c.el.classList.toggle('current',k===focused);c.el.classList.toggle('verified',c.members.some(w=>verified.has(w)));});const letters=Array(12).fill('');letters[1]='F';letters[9]='K';for(const [p,w,i]of mappings)if(verified.has(w))letters[p]=cells.get(words[w].keys[i]).value;[...$('secret').children].forEach((el,i)=>{if(el.textContent!==letters[i]){el.textContent=letters[i];el.classList.remove('reveal');void el.offsetWidth;if(letters[i])el.classList.add('reveal');}el.setAttribute('aria-label',`Secret letter ${i+1}: ${letters[i]||'hidden'}`);});$('game').classList.toggle('complete',verified.size===7);}
+$('previous').onclick=()=>select(active-1);$('next').onclick=()=>select(active+1);$('check').onclick=check;
+function reset(){cells.forEach(c=>c.value='');verified.clear();active=0;focused=null;status('Choose a word and type your answer.');render();}
+$('restart').onclick=()=>{if([...cells.values()].some(c=>c.value))$('confirmation').showModal();else reset();};$('confirmation').addEventListener('close',()=>{if($('confirmation').returnValue==='restart')reset();});render();
+}
